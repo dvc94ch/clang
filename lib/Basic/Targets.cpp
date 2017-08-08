@@ -4502,15 +4502,15 @@ X86TargetInfo::convertConstraint(const char *&Constraint) const {
     switch (Constraint[1]) {
     default:
       // Break from inner switch and fall through (copy single char),
-      // continue parsing after copying the current constraint into 
+      // continue parsing after copying the current constraint into
       // the return string.
       break;
     case 'k':
       // "^" hints llvm that this is a 2 letter constraint.
-      // "Constraint++" is used to promote the string iterator 
+      // "Constraint++" is used to promote the string iterator
       // to the next constraint.
       return std::string("^") + std::string(Constraint++, 2);
-    } 
+    }
     LLVM_FALLTHROUGH;
   default:
     return std::string(1, *Constraint);
@@ -9506,6 +9506,57 @@ protected:
   std::string CPU;
 };
 
+// RISC-V Target
+// TODO: need to handle 64-bit as well as 32-bit
+class RISCVTargetInfo : public TargetInfo {
+public:
+  RISCVTargetInfo(const llvm::Triple &Triple, const TargetOptions &)
+      : TargetInfo(Triple) {
+    TLSSupported = false;
+    resetDataLayout("e-m:e-p:32:32-i64:64-n32-S128");
+  }
+
+  void getTargetDefines(const LangOptions &Opts,
+                        MacroBuilder &Builder) const override {
+    Builder.defineMacro("__riscv__");
+  }
+
+  ArrayRef<Builtin::Info> getTargetBuiltins() const override { return None; }
+
+  BuiltinVaListKind getBuiltinVaListKind() const override {
+    return TargetInfo::VoidPtrBuiltinVaList;
+  }
+
+  const char *getClobbers() const override { return ""; }
+
+  ArrayRef<const char *> getGCCRegNames() const override {
+    static const char *const GCCRegNames[] = {
+        "x0",  "x1",  "x2",  "x3",  "x4",  "x5",  "x6",  "x7",
+        "x8",  "x9",  "x10", "x11", "x12", "x13", "x14", "x15",
+        "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
+        "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"};
+    return llvm::makeArrayRef(GCCRegNames);
+  }
+
+  ArrayRef<TargetInfo::GCCRegAlias> getGCCRegAliases() const override {
+    static const TargetInfo::GCCRegAlias GCCRegAliases[] = {
+        {{"zero"}, "x0"}, {{"ra"}, "x1"},  {{"sp"}, "x2"},   {{"gp"}, "x3"},
+        {{"tp"}, "x4"},   {{"t0"}, "x5"},  {{"t1"}, "x6"},   {{"t2"}, "x7"},
+        {{"s0"}, "x8"},   {{"s1"}, "x9"},  {{"a0"}, "x10"},  {{"a1"}, "x11"},
+        {{"a2"}, "x12"},  {{"a3"}, "x13"}, {{"a4"}, "x15"},  {{"a5"}, "x15"},
+        {{"a6"}, "x16"},  {{"a7"}, "x17"}, {{"s2"}, "x18"},  {{"s3"}, "x19"},
+        {{"s4"}, "x20"},  {{"s5"}, "x21"}, {{"s6"}, "x22"},  {{"s7"}, "x23"},
+        {{"s8"}, "x24"},  {{"s9"}, "x25"}, {{"s10"}, "x26"}, {{"s11"}, "x27"},
+        {{"t3"}, "x28"},  {{"t4"}, "x29"}, {{"t5"}, "x30"},  {{"t6"}, "x31"}};
+    return llvm::makeArrayRef(GCCRegAliases);
+  }
+
+  bool validateAsmConstraint(const char *&Name,
+                             TargetInfo::ConstraintInfo &Info) const override {
+    return false;
+  }
+};
+
 } // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
@@ -9765,6 +9816,9 @@ static TargetInfo *AllocateTarget(const llvm::Triple &Triple,
   case llvm::Triple::amdgcn:
   case llvm::Triple::r600:
     return new AMDGPUTargetInfo(Triple, Opts);
+
+  case llvm::Triple::riscv32:
+    return new RISCVTargetInfo(Triple, Opts);
 
   case llvm::Triple::sparc:
     switch (os) {

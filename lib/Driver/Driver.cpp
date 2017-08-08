@@ -37,6 +37,7 @@
 #include "ToolChains/NetBSD.h"
 #include "ToolChains/OpenBSD.h"
 #include "ToolChains/PS4CPU.h"
+#include "ToolChains/RISCV.h"
 #include "ToolChains/Solaris.h"
 #include "ToolChains/TCE.h"
 #include "ToolChains/WebAssembly.h"
@@ -3901,6 +3902,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
         break;
       case llvm::Triple::avr:
         TC = llvm::make_unique<toolchains::AVRToolChain>(*this, Target, Args);
+        break;
+      case llvm::Triple::riscv32:
+        TC = llvm::make_unique<toolchains::RISCVToolChain>(*this, Target, Args);
         break;
       default:
         if (Target.getVendor() == llvm::Triple::Myriad)
